@@ -21,6 +21,15 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
+    const artifactsCollections = client
+      .db("HistoTrack")
+      .collection("AllArtifacts");
+
+    app.post("/allArtifacts", async (req, res) => {
+      const data = req.body;
+      const result = await artifactsCollections.insertOne(data);
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log("Histo Track Server Started");
