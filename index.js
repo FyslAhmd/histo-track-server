@@ -25,6 +25,11 @@ async function run() {
       .db("HistoTrack")
       .collection("AllArtifacts");
 
+    app.get("/allArtifacts", async (req, res) => {
+      const result = await artifactsCollections.find().toArray();
+      res.send(result);
+    });
+
     app.post("/allArtifacts", async (req, res) => {
       const data = req.body;
       const result = await artifactsCollections.insertOne(data);
