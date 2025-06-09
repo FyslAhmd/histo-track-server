@@ -77,6 +77,13 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/myArtifacts", async (req, res) => {
+      const userEmail = req.query.email;
+      const query = { email: userEmail };
+      const result = await artifactsCollections.find(query).toArray();
+      res.send(result);
+    });
+
     app.post("/allArtifacts", async (req, res) => {
       const data = req.body;
       const result = await artifactsCollections.insertOne(data);
@@ -102,6 +109,13 @@ async function run() {
         };
       }
       const result = await artifactsCollections.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
+    app.delete("/allArtifacts/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await artifactsCollections.deleteOne(query);
       res.send(result);
     });
 
