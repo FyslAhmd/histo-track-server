@@ -63,9 +63,45 @@ async function run() {
       res.send(randomArtifact);
     });
 
+    app.get("/artifact/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await artifactsCollections.findOne(query);
+      res.send(result);
+    });
+
+    app.get("/liked-artifacts", async (req, res) => {
+      const userEmail = req.query.email;
+      const query = { likedBy: { $in: [userEmail] } };
+      const result = await artifactsCollections.find(query).toArray();
+      res.send(result);
+    });
+
     app.post("/allArtifacts", async (req, res) => {
       const data = req.body;
       const result = await artifactsCollections.insertOne(data);
+      res.send(result);
+    });
+
+    app.patch("/artifact/:id", async (req, res) => {
+      const id = req.params.id;
+      const { userEmail } = req.body;
+      const query = { _id: new ObjectId(id) };
+      const artifact = await artifactsCollections.findOne(query);
+      const likedUsers = artifact.likedBy || [];
+      let updateDoc = {};
+      if (likedUsers.includes(userEmail)) {
+        updateDoc = {
+          $inc: { totalLiked: -1 },
+          $pull: { likedBy: userEmail },
+        };
+      } else {
+        updateDoc = {
+          $inc: { totalLiked: 1 },
+          $addToSet: { likedBy: userEmail },
+        };
+      }
+      const result = await artifactsCollections.updateOne(query, updateDoc);
       res.send(result);
     });
 
