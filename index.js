@@ -48,26 +48,6 @@ async function run() {
       res.send(result);
     });
 
-    // app.get("/dailyArtifact", async (req, res) => {
-    //   const today = new Date().toISOString().split("T")[0];
-    //   const existing = await dailyArtifactCollection.findOne({ date: today });
-    //   if (existing) {
-    //     const artifact = await artifactsCollections.findOne({
-    //       _id: new ObjectId(existing.artifactId),
-    //     });
-    //     return res.send(artifact);
-    //   }
-
-    //   const [randomArtifact] = await artifactsCollections
-    //     .aggregate([{ $sample: { size: 1 } }])
-    //     .toArray();
-    //   await dailyArtifactCollection.insertOne({
-    //     artifactId: randomArtifact._id,
-    //     date: today,
-    //   });
-    //   res.send(randomArtifact);
-    // });
-
     app.get("/dailyArtifact", async (req, res) => {
       try {
         const today = new Date().toISOString().split("T")[0];
