@@ -30,8 +30,13 @@ async function run() {
       .collection("dailyArtifact");
 
     app.get("/allArtifacts", async (req, res) => {
-      const result = await artifactsCollections.find().toArray();
-      res.send(result);
+      const nameQuery = req.query.name;
+      let query = {};
+      if (nameQuery) {
+        query = { ArtifactName: { $regex: nameQuery, $options: "i" } };
+      }
+      const artifacts = await artifactsCollections.find(query).toArray();
+      res.send(artifacts);
     });
 
     app.get("/featuredArtifacts", async (req, res) => {
@@ -43,24 +48,61 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/dailyArtifact", async (req, res) => {
-      const today = new Date().toISOString().split("T")[0];
-      const existing = await dailyArtifactCollection.findOne({ date: today });
-      if (existing) {
-        const artifact = await artifactsCollections.findOne({
-          _id: new ObjectId(existing.artifactId),
-        });
-        return res.send(artifact);
-      }
+    // app.get("/dailyArtifact", async (req, res) => {
+    //   const today = new Date().toISOString().split("T")[0];
+    //   const existing = await dailyArtifactCollection.findOne({ date: today });
+    //   if (existing) {
+    //     const artifact = await artifactsCollections.findOne({
+    //       _id: new ObjectId(existing.artifactId),
+    //     });
+    //     return res.send(artifact);
+    //   }
 
-      const [randomArtifact] = await artifactsCollections
-        .aggregate([{ $sample: { size: 1 } }])
-        .toArray();
-      await dailyArtifactCollection.insertOne({
-        artifactId: randomArtifact._id,
-        date: today,
-      });
-      res.send(randomArtifact);
+    //   const [randomArtifact] = await artifactsCollections
+    //     .aggregate([{ $sample: { size: 1 } }])
+    //     .toArray();
+    //   await dailyArtifactCollection.insertOne({
+    //     artifactId: randomArtifact._id,
+    //     date: today,
+    //   });
+    //   res.send(randomArtifact);
+    // });
+
+    app.get("/dailyArtifact", async (req, res) => {
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const existing = await dailyArtifactCollection.findOne({ date: today });
+
+        if (existing) {
+          const artifact = await artifactsCollections.findOne({
+            _id: new ObjectId(existing.artifactId),
+          });
+
+          if (!artifact) {
+            return res.status(404).send({ error: "Artifact not found." });
+          }
+
+          return res.send(artifact);
+        }
+
+        const [randomArtifact] = await artifactsCollections
+          .aggregate([{ $sample: { size: 1 } }])
+          .toArray();
+
+        if (!randomArtifact) {
+          return res.status(404).send({ error: "No artifacts in database." });
+        }
+
+        await dailyArtifactCollection.insertOne({
+          artifactId: randomArtifact._id,
+          date: today,
+        });
+
+        res.send(randomArtifact);
+      } catch (error) {
+        console.error("Error in /dailyArtifact:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
     });
 
     app.get("/artifact/:id", async (req, res) => {
@@ -109,6 +151,16 @@ async function run() {
         };
       }
       const result = await artifactsCollections.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
+    app.patch("/updateArtifact/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: req.body,
+      };
+      const result = await artifactsCollections.updateOne(query, updatedDoc);
       res.send(result);
     });
 
