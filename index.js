@@ -46,7 +46,7 @@ const varifyFirebaseToken = async (req, res, next) => {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const artifactsCollections = client
       .db("HistoTrack")
       .collection("AllArtifacts");
@@ -187,8 +187,8 @@ async function run() {
       res.send(result);
     });
 
-    await client.db("admin").command({ ping: 1 });
-    console.log("Histo Track Server Started");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Histo Track Server Started");
   } finally {
   }
 }
