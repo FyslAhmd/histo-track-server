@@ -2,11 +2,20 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const app = express();
-require("dotenv").config();
 const port = process.env.port || 5000;
+const admin = require("firebase-admin");
+require("dotenv").config();
 
 app.use(cors());
 app.use(express.json());
+
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString(
+  "utf-8"
+);
+const serviceAccount = JSON.parse(decoded);
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.mo9z4qj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -17,6 +26,23 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+const varifyFirebaseToken = async (req, res, next) => {
+  const authHeader = req.headers?.authorization;
+
+  if (!authHeader || !authHeader?.startsWith("Bearer ")) {
+    return res.status(401).send({ message: "Unauthorized access" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    req.decoded = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).send({ message: "Unauthorized access" });
+  }
+};
 
 async function run() {
   try {
@@ -92,15 +118,25 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/liked-artifacts", async (req, res) => {
+    app.get("/liked-artifacts", varifyFirebaseToken, async (req, res) => {
       const userEmail = req.query.email;
+
+      if (userEmail !== req.decoded.email) {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
+
       const query = { likedBy: { $in: [userEmail] } };
       const result = await artifactsCollections.find(query).toArray();
       res.send(result);
     });
 
-    app.get("/myArtifacts", async (req, res) => {
+    app.get("/myArtifacts", varifyFirebaseToken, async (req, res) => {
       const userEmail = req.query.email;
+
+      if (userEmail !== req.decoded.email) {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
+
       const query = { email: userEmail };
       const result = await artifactsCollections.find(query).toArray();
       res.send(result);
