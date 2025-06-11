@@ -170,9 +170,18 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/updateArtifact/:id", async (req, res) => {
+    app.patch("/updateArtifact/:id", varifyFirebaseToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
+      const artifact = await artifactsCollections.findOne(query);
+      if (!artifact) {
+        return res.status(404).send("Artifact not found");
+      }
+      if (artifact.email !== req.decoded.email) {
+        return res
+          .status(403)
+          .send("Forbidden: You are not allowed to update this artifact");
+      }
       const updatedDoc = {
         $set: req.body,
       };
