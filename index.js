@@ -56,12 +56,29 @@ async function run() {
       .collection("dailyArtifact");
 
     app.get("/allArtifacts", async (req, res) => {
-      const nameQuery = req.query.name;
-      let query = {};
-      if (nameQuery) {
-        query = { ArtifactName: { $regex: nameQuery, $options: "i" } };
+      const sort = req.query.sort; // e.g., 'likes-desc' or 'name-asc'
+
+      let sortOption = {};
+
+      switch (sort) {
+        case "name-asc":
+          sortOption = { ArtifactName: 1 };
+          break;
+        case "name-desc":
+          sortOption = { ArtifactName: -1 };
+          break;
+        case "likes-asc":
+          sortOption = { totalLiked: 1 };
+          break;
+        case "likes-desc":
+          sortOption = { totalLiked: -1 };
+          break;
       }
-      const artifacts = await artifactsCollections.find(query).toArray();
+
+      const artifacts = await artifactsCollections
+        .find()
+        .sort(sortOption)
+        .toArray();
       res.send(artifacts);
     });
 
@@ -69,7 +86,7 @@ async function run() {
       const result = await artifactsCollections
         .find()
         .sort({ totalLiked: -1 })
-        .limit(6)
+        .limit(8)
         .toArray();
       res.send(result);
     });
